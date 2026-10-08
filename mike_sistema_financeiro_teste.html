@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MIKE — Sistema Financeiro</title>
+<style>
+:root{--primary:#17324d;--secondary:#285b7a;--bg:#f4f6f8;--card:#fff;--text:#1e293b;--muted:#64748b;--border:#dbe2e8;--ok:#15803d;--danger:#b91c1c}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+header{background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;padding:22px 18px;position:sticky;top:0;z-index:10;box-shadow:0 2px 8px #0002}
+header h1{margin:0;font-size:25px}header p{margin:5px 0 0;opacity:.85}
+nav{display:flex;gap:8px;overflow:auto;padding:10px;background:#fff;border-bottom:1px solid var(--border);position:sticky;top:82px;z-index:9}
+nav button{border:0;background:#eef2f5;padding:10px 14px;border-radius:8px;white-space:nowrap;cursor:pointer;font-weight:700;color:var(--primary)}
+nav button.active{background:var(--primary);color:#fff}
+main{max-width:1200px;margin:auto;padding:18px}.section{display:none}.section.active{display:block}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px;box-shadow:0 2px 8px #00000008}
+.card h2,.card h3{margin-top:0;color:var(--primary)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+label{display:block;font-size:13px;font-weight:700;margin-bottom:5px;color:#475569}
+input,select,button{font:inherit}input,select{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff}
+button.primary{background:var(--primary);color:#fff;border:0;padding:11px 16px;border-radius:8px;cursor:pointer;font-weight:700}
+button.secondary{background:#e2e8f0;color:#334155;border:0;padding:11px 16px;border-radius:8px;cursor:pointer;font-weight:700}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+table{width:100%;border-collapse:collapse;margin-top:10px}th,td{padding:9px;border-bottom:1px solid var(--border);text-align:left;font-size:14px}th{background:#f1f5f9;color:var(--primary)}
+.money{font-weight:700;text-align:right}.total{font-size:20px;color:var(--ok)}
+.badge{display:inline-block;padding:5px 9px;border-radius:99px;background:#e2e8f0;font-size:12px;font-weight:700}
+.info{background:#eff6ff;border-left:4px solid #2563eb;padding:12px;border-radius:6px;margin:10px 0}
+.warning{background:#fff7ed;border-left:4px solid #ea580c;padding:12px;border-radius:6px;margin:10px 0}
+.kpi{font-size:24px;font-weight:800;color:var(--primary);margin-top:4px}
+.small{font-size:12px;color:var(--muted)}
+.empty{text-align:center;color:var(--muted);padding:20px}
+@media(max-width:800px){.grid,.grid4{grid-template-columns:1fr 1fr}nav{top:78px}}
+@media(max-width:520px){.grid,.grid4{grid-template-columns:1fr}main{padding:10px}.card{padding:13px}th,td{font-size:12px;padding:7px}header h1{font-size:21px}}
+
+.table-input{min-width:110px}
+@media(max-width:700px){
+  table{min-width:700px}
+  .card{overflow:hidden}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>💰 MIKE</h1>
+  <p>Sistema Financeiro para Mikes</p>
+</header>
+
+<nav>
+  <button class="active" onclick="showSection('dashboard',this)">Dashboard</button>
+  <button onclick="showSection('base',this)">Base de Valores</button>
+  <button onclick="showSection('holerite',this)">Cadastro de Holerite</button>
+  <button onclick="showSection('lancamentos',this)">Lançamentos</button>
+  <button onclick="showSection('resultado',this)">Cálculo Final</button><button onclick="showSection('extras',this)">Ganhos Extra</button><button onclick="showSection('debitos',this)">Descontos/Débitos</button>
+</nav>
+
+<main>
+<section id="dashboard" class="section active">
+  <div class="card">
+    <h2>Visão Geral</h2>
+    <div class="grid4">
+      <div><span class="small">Posto/Graduação</span><div class="kpi" id="dashPosto">—</div></div>
+      <div><span class="small">Salário Base</span><div class="kpi" id="dashSalario">R$ 0,00</div></div>
+      <div><span class="small">RETP</span><div class="kpi" id="dashRetp">R$ 0,00</div></div>
+      <div><span class="small">Alimentação</span><div class="kpi" id="dashAlimentacao">R$ 0,00</div></div><div><span class="small">Débitos do mês</span><div class="kpi" id="dashDebitos">R$ 0,00</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Status do teste</h3>
+    <div class="info">Esta versão funciona imediatamente no navegador usando armazenamento local. O ponto de integração do Firebase está preparado no JavaScript. Depois de inserir suas credenciais Firebase, podemos trocar o armazenamento local pelo Firestore.</div>
+    <p class="small">Valores de teste podem ser alterados na aba “Base de Valores”.</p>
+    <div class="warning">
+      <strong>Firebase:</strong> esta versão está pronta para a próxima etapa de integração com Firestore.
+      As credenciais do projeto Firebase ainda não foram inseridas neste arquivo.
+    </div>
+  </div>
+</section>
+
+<section id="base" class="section">
+  <div class="card">
+    <h2>Base de Valores</h2>
+    <div class="grid">
+      <div><label>UFESP atual (R$)</label><input id="ufesp" type="number" step="0.01" value="38.42"></div>
+      <div><label>Insalubridade padrão (R$)</label><input id="insalubridade" type="number" step="0.01" value="785.67"></div>
+      <div><label>Quinquênio (%)</label><input id="percQuinq" type="number" step="0.01" value="10"></div>
+      <div><label>Sexta-parte (%)</label><input id="percSexta" type="number" step="0.01" value="16.67"></div>
+      <div><label>Alimentação 8h a &lt;12h (%)</label><input id="alim50" type="number" step="0.01" value="50"></div>
+      <div><label>Alimentação 12h a &lt;18h (%)</label><input id="alim100" type="number" step="0.01" value="100"></div>
+      <div><label>Alimentação 18h a 24h (%)</label><input id="alim150" type="number" step="0.01" value="150"></div>
+    </div>
+    <h3 style="margin-top:20px">Postos / Graduações</h3>
+    <table><thead><tr><th>Posto/Graduação</th><th>Salário Base</th><th>RETP</th></tr></thead><tbody id="tabelaPostos"></tbody></table>
+    <div class="actions"><button class="primary" onclick="salvarBase()">Salvar Base</button></div>
+  </div>
+</section>
+
+<section id="holerite" class="section">
+  <div class="card">
+    <h2>Cadastro de Holerite</h2>
+    <div class="grid">
+      <div><label>Posto / Graduação</label><select id="posto" onchange="carregarPosto()"></select></div>
+      <div><label>Salário Base</label><input id="salarioBase" readonly></div>
+      <div><label>RETP</label><input id="retp" readonly></div>
+      <div><label>Insalubridade</label><input id="insalubridadeH" type="number" step="0.01"></div>
+    </div>
+    <h3 style="margin-top:20px">Quinquênios</h3>
+    <div class="grid4" id="quinquenios"></div>
+    <div style="margin-top:15px;max-width:300px">
+      <label>Sexta-Parte</label>
+      <select id="sexta" onchange="calcularHolerite()"><option value="nao">Não</option><option value="sim">Sim</option></select>
+    </div>
+    <div class="actions"><button class="primary" onclick="salvarHolerite()">Salvar Holerite</button></div>
+  </div>
+</section>
+
+<section id="lancamentos" class="section">
+  <div class="card">
+    <h2>Registro de Serviços</h2>
+
+    <div class="grid">
+      <div>
+        <label>Ano</label>
+        <select id="ano" onchange="atualizarLancamentos();renderDebitos();renderResultado()"></select>
+      </div>
+      <div>
+        <label>Mês</label>
+        <select id="mes" onchange="atualizarLancamentos();renderDebitos();renderResultado()"></select>
+      </div>
+      <div>
+        <label>UFESP utilizada</label>
+        <input id="ufespLanc" readonly>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Horário Padrão</h2>
+    <p class="small">Informe o horário normalmente realizado e a quantidade de serviços realizados nesse horário durante o mês.</p>
+
+    <div class="grid">
+      <div>
+        <label>Quantidade de Serviços</label>
+        <input id="qtdServicosPadrao" type="number" min="0" value="0" oninput="calcularPadrao()">
+      </div>
+      <div>
+        <label>Hora Início</label>
+        <input id="horaInicioPadrao" type="time" onchange="calcularPadrao()">
+      </div>
+      <div>
+        <label>Hora Final</label>
+        <input id="horaFinalPadrao" type="time" onchange="calcularPadrao()">
+      </div>
+      <div>
+        <label>Total de horas trabalhadas</label>
+        <input id="totalHorasPadrao" readonly>
+      </div>
+      <div>
+        <label>Valor por serviço</label>
+        <input id="valorServicoPadrao" readonly>
+      </div>
+      <div>
+        <label>Total alimentação</label>
+        <input id="totalAlimentacaoPadrao" readonly>
+      </div>
+    </div>
+
+    <div class="info" id="faixaPadrao">Informe início e final para identificar a faixa de alimentação.</div>
+
+    <div class="actions">
+      <button class="primary" onclick="salvarHorarioPadrao()">Salvar Horário Padrão</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Inserir Serviço com Horário Diferente</h2>
+    <p class="small">Use esta opção somente para os dias que tiveram horário diferente do padrão.</p>
+
+    <div class="grid">
+      <div>
+        <label>Data</label>
+        <select id="dataServicoDiferente"></select>
+      </div>
+      <div>
+        <label>Hora Início</label>
+        <input id="horaInicioDiferente" type="time" onchange="calcularDiferente()">
+      </div>
+      <div>
+        <label>Hora Final</label>
+        <input id="horaFinalDiferente" type="time" onchange="calcularDiferente()">
+      </div>
+      <div>
+        <label>Total horas trabalhadas</label>
+        <input id="totalHorasDiferente" readonly>
+      </div>
+      <div>
+        <label>Faixa alimentação</label>
+        <input id="faixaDiferente" readonly>
+      </div>
+      <div>
+        <label>Valor alimentação</label>
+        <input id="valorDiferente" readonly>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="primary" onclick="adicionarServicoDiferente()">Adicionar Serviço</button>
+      <button class="secondary" onclick="limparDiferente()">Limpar</button>
+    </div>
+
+    <div style="overflow:auto;margin-top:15px">
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Início</th>
+            <th>Final</th>
+            <th>Total Horas</th>
+            <th>Faixa</th>
+            <th>Alimentação</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaDiferentes"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Resumo dos Lançamentos</h2>
+    <div class="grid4">
+      <div>
+        <span class="small">Serviços padrão</span>
+        <div class="kpi" id="resumoQtdPadrao">0</div>
+      </div>
+      <div>
+        <span class="small">Serviços diferentes</span>
+        <div class="kpi" id="resumoQtdDiferentes">0</div>
+      </div>
+      <div>
+        <span class="small">Total de serviços</span>
+        <div class="kpi" id="resumoQtdTotal">0</div>
+      </div>
+      <div>
+        <span class="small">Alimentação</span>
+        <div class="kpi" id="resumoAlimentacaoLanc">R$ 0,00</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="primary" onclick="salvarLancamentos()">Salvar Lançamentos</button>
+    </div>
+  </div>
+</section>
+
+<section id="extras" class="section"><div class="card"><h2>Ganhos Extra</h2><p class="small">Cadastre Dejem, Delegada ou Bico e informe a forma de pagamento.</p><div class="grid"><div><label>Tipo</label><select id="extraTipo"><option>Dejem</option><option>Delegada</option><option>Bico</option></select></div><div><label>Valor Unitário</label><input id="extraValor" type="number" min="0" step="0.01"></div><div><label>Pagamento</label><select id="extraPagamento" onchange="alterarTipoPagamentoExtra()"><option value="data">Data Específica</option><option value="util">Dia Útil</option></select></div></div><div id="extraDataBox" style="margin-top:12px"><label>Data de Pagamento</label><input id="extraDataPagamento" type="date"></div><div id="extraUtilBox" style="display:none;margin-top:12px"><div class="grid"><div><label>Mês</label><input id="extraMesPagamento" type="month" onchange="calcularDataUtilExtra()"></div><div><label>Dia Útil</label><select id="extraDiaUtil" onchange="calcularDataUtilExtra()"><option value="1">1º dia útil</option><option value="2">2º dia útil</option><option value="3">3º dia útil</option><option value="4">4º dia útil</option><option value="5">5º dia útil</option></select></div><div><label>Data Calculada</label><input id="extraDataCalculada" readonly></div></div></div><div class="actions"><button class="primary" onclick="adicionarExtra()">Inserir Lançamento</button><button class="secondary" onclick="limparExtra()">Limpar</button></div></div><div class="card"><h2>Lançamentos de Serviços Extra</h2><div class="grid4"><div><span class="small">Dejem</span><div class="kpi" id="extraTotalDejem">R$ 0,00</div></div><div><span class="small">Delegada</span><div class="kpi" id="extraTotalDelegada">R$ 0,00</div></div><div><span class="small">Bico</span><div class="kpi" id="extraTotalBico">R$ 0,00</div></div><div><span class="small">Total</span><div class="kpi" id="extraTotalGeral">R$ 0,00</div></div></div><div style="overflow:auto;margin-top:15px"><table><thead><tr><th>Tipo</th><th>Valor</th><th>Pagamento</th><th>Data de Pagamento</th><th>Ação</th></tr></thead><tbody id="tabelaExtras"></tbody></table></div><div class="actions"><button class="primary" onclick="salvarExtras()">Salvar Ganhos Extra</button></div></div></section><section id="debitos" class="section">
+  <div class="card">
+    <h2>Descontos / Débitos</h2>
+    <p class="small">Descontos padrão da folha e débitos pessoais são calculados separadamente. As regras ficam vinculadas à competência para preservar o histórico.</p>
+
+    <div class="card" style="background:#f8fafc;margin-bottom:16px">
+      <h3>Descontos padrão</h3>
+      <div class="info"><strong>Base de cálculo dos descontos:</strong> <span id="baseCalculoDescontos">R$ 0,00</span><br><span class="small">Salário Base + RETP + Insalubridade + Quinquênios + Sexta-Parte. O IRRF acrescenta a Ajuda Custo Alimentação (diárias) à base.</span></div>
+      <p class="small">Marque o desconto que deve participar do cálculo. Os campos de configuração aparecem na própria linha.</p>
+      <div style="overflow:auto">
+        <table>
+          <thead><tr><th>Descrição</th><th>Selecionar</th><th>Campo / Configuração</th><th>Valor Calculado</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>IRRF</strong><div class="small">Tabela vigente da Receita Federal</div></td>
+              <td style="text-align:center"><input type="checkbox" id="padIRRF" onchange="renderDescontosPadrao()"></td>
+              <td><input id="irrfBaseInfo" readonly placeholder="Base de cálculo automática"></td>
+              <td><input id="irrfValorInfo" readonly placeholder="R$ 0,00"></td>
+            </tr>
+            <tr>
+              <td><strong>CBPM</strong></td>
+              <td style="text-align:center"><input type="checkbox" id="padCBPM" onchange="renderDescontosPadrao()"></td>
+              <td><input id="cbpmPerc" type="number" step="0.01" min="0" placeholder="Percentual (%)" oninput="renderDescontosPadrao()"></td>
+              <td><input id="cbpmValorInfo" readonly placeholder="R$ 0,00"></td>
+            </tr>
+            <tr>
+              <td><strong>Fepom Vestuário</strong></td>
+              <td style="text-align:center"><input type="checkbox" id="padVest" onchange="renderDescontosPadrao()"></td>
+              <td><input id="vestValor" type="number" step="0.01" min="0" placeholder="Valor (R$)" oninput="renderDescontosPadrao()"></td>
+              <td><select id="vestRec" onchange="renderDescontosPadrao()"><option value="nao">Somente este mês</option><option value="sim">Recorrente</option></select><div id="vestRecConfig" style="display:none;margin-top:6px"><label class="small"><input type="checkbox" id="vestSemFim" onchange="renderDescontosPadrao()"> Sem data final</label><input id="vestAte" type="month" style="margin-top:5px" onchange="renderDescontosPadrao()"></div></td>
+            </tr>
+            <tr>
+              <td><strong>Fepom Plano Copa</strong></td>
+              <td style="text-align:center"><input type="checkbox" id="padCopa" onchange="renderDescontosPadrao()"></td>
+              <td><input id="copaValor" type="number" step="0.01" min="0" placeholder="Valor (R$)" oninput="renderDescontosPadrao()"></td>
+              <td><select id="copaRec" onchange="renderDescontosPadrao()"><option value="nao">Somente este mês</option><option value="sim">Recorrente</option></select><div id="copaRecConfig" style="display:none;margin-top:6px"><label class="small"><input type="checkbox" id="copaSemFim" onchange="renderDescontosPadrao()"> Sem data final</label><input id="copaAte" type="month" style="margin-top:5px" onchange="renderDescontosPadrao()"></div></td>
+            </tr>
+            <tr>
+              <td><strong>Previdência Própria PM</strong></td>
+              <td style="text-align:center"><input type="checkbox" id="padPrev" onchange="renderDescontosPadrao()"></td>
+              <td><input id="prevPerc" type="number" step="0.01" min="0" placeholder="Percentual (%)" oninput="renderDescontosPadrao()"></td>
+              <td><input id="prevValorInfo" readonly placeholder="R$ 0,00"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="actions"><button class="primary" onclick="salvarDescontosPadrao()">Salvar Descontos Padrão</button></div>
+      <div id="resumoDescontosPadrao" class="small" style="margin-top:10px"></div>
+    </div>
+
+    <h3>Inserir Desconto ou Débito</h3>
+    <p class="small">Cadastre descontos e dívidas. Os débitos recorrentes e as parcelas serão projetados automaticamente para os meses seguintes conforme o limite informado.</p>
+    <div class="grid">
+      <div><label>Tipo</label><select id="debitoTipo" onchange="alterarTipoDebito()"><option value="Associação">Associação</option><option value="Cartão de Crédito">Cartão de Crédito</option><option value="Consignado">Consignado</option><option value="Em Folha">Em Folha</option><option value="Empréstimo">Empréstimo</option><option value="Financiamento">Financiamento</option><option value="Mensalidade">Mensalidade</option><option value="Parcelamento">Parcelamento</option><option value="Pensão">Pensão</option></select></div>
+      <div><label>Instituição ou Credor</label><input id="debitoCredor" type="text" placeholder="Ex.: Banco, associação, cartão..." /></div>
+      <div><label>Valor</label><input id="debitoValor" type="number" min="0" step="0.01" placeholder="0,00" /></div>
+    </div>
+    <div id="debitoRecorrenteBox" class="card" style="margin-top:15px;background:#f8fafc">
+      <h3>Débito recorrente</h3>
+      <div class="grid">
+        <div><label>Recorrente?</label><select id="debitoRecorrente" onchange="alterarRecorrenciaDebito()"><option value="nao">Não</option><option value="sim">Sim</option></select></div>
+        <div id="debitoAteBox" style="display:none"><label>Até (Ano e Mês)</label><input id="debitoAte" type="month" /></div>
+      </div>
+      <p class="small">Aplicável a Em Folha, Mensalidade, Associação e Pensão. Se “Não”, o débito fica somente no mês de lançamento.</p>
+    </div>
+    <div id="debitoParcelamentoBox" class="card" style="display:none;margin-top:15px;background:#f8fafc">
+      <h3>Parcelamento / Crédito / Financiamento</h3>
+      <div class="grid">
+        <div><label>Quantidade de parcelas restantes</label><input id="debitoParcelas" type="number" min="1" step="1" placeholder="Ex.: 10" oninput="calcularParcelaDebito()" /></div>
+        <div><label>Valor da Parcela</label><input id="debitoValor" type="number" min="0" step="0.01" placeholder="0,00" oninput="calcularParcelaDebito()" /></div>
+        <div><label>Valor Total da Dívida</label><input id="debitoValorTotal" readonly /></div>
+      </div>
+      <p class="small">Valor Total da Dívida = Valor da Parcela × Quantidade de parcelas restantes. Cada parcela será lançada nos meses seguintes até o limite.</p>
+    </div>
+    <div class="actions"><button class="primary" onclick="adicionarDebito()">Inserir Desconto ou Débito</button><button class="secondary" onclick="limparDebito()">Limpar</button></div>
+  </div>
+
+  <div class="card">
+    <h2>Débitos Cadastrados</h2>
+    <div class="grid4">
+      <div><span class="small">Recorrentes</span><div class="kpi" id="debitoTotalRecorrente">R$ 0,00</div></div>
+      <div><span class="small">Parcelamentos</span><div class="kpi" id="debitoTotalParcelas">R$ 0,00</div></div>
+      <div><span class="small">Projetado no mês</span><div class="kpi" id="debitoTotalMes">R$ 0,00</div></div>
+      <div><span class="small">Total cadastrado</span><div class="kpi" id="debitoTotalGeral">R$ 0,00</div></div>
+    </div>
+    <div style="overflow:auto;margin-top:15px"><table><thead><tr><th>Tipo</th><th>Credor</th><th>Valor</th><th>Regra</th><th>Vigência</th><th>Ação</th></tr></thead><tbody id="tabelaDebitos"></tbody></table></div>
+    <div class="info" style="margin-top:15px"><strong>Competência selecionada:</strong> <span id="competenciaDebitos">—</span>. O valor projetado considera os lançamentos que estiverem vigentes nessa competência.</div>
+  </div>
+</section>
+
+<section id="resultado" class="section">
+  <div class="card">
+    <h2>Cálculo Final do Holerite</h2>
+    <div id="resultadoHolerite" class="empty">Cadastre um holerite para visualizar o cálculo.</div>
+  </div>
+  <div class="card">
+    <h2>Resumo da Ajuda de Custo Alimentação</h2>
+    <div id="resumoAlimentacao" class="empty">Registre serviços para visualizar.</div>
+  </div>
+</section>
+</main>
+
+<script>
+const POSTOS=[
+["Sd PM",2486.11],["Cb PM",2686.30],["3º SGT PM",2772.19],["2º SGT PM",3158.78],
+["1º SGT PM",3507.49],["SubTen PM",4050.13],["Asp Of PM",4766.58],["2º Ten PM",5165.85],
+["1º Ten PM",5707.86],["Capitão PM",6469.08],["Major PM",7219.90],["Ten Cel PM",8217.20],["Cel PM",9495.92]
+];
+
+let base=JSON.parse(localStorage.getItem("mike_base")||"null")||{
+ ufesp:38.42,insalubridade:785.67,percQuinq:10,percSexta:16.67,alim50:50,alim100:100,alim150:150,
+ postos:Object.fromEntries(POSTOS.map(p=>[p[0],{salario:p[1],retp:p[1]}]))
+};
+if(base.insalubridade===0) base.insalubridade=785.67;
+let holerite=JSON.parse(localStorage.getItem("mike_holerite")||"null");
+let lancamentos=JSON.parse(localStorage.getItem("mike_lancamentos")||"{}");
+let ganhosExtras=JSON.parse(localStorage.getItem("mike_ganhos_extras")||"[]");
+let debitos=JSON.parse(localStorage.getItem("mike_debitos")||"[]");
+let descontosPadrao=JSON.parse(localStorage.getItem("mike_descontos_padrao")||"null")||{irrf:false,cbpm:false,cbpmPerc:0,vest:false,vestValor:0,vestRec:false,vestAte:"",copa:false,copaValor:0,copaRec:false,copaAte:"",prev:false,prevPerc:0};
+
+function brl(v){return Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});}
+function showSection(id,btn){document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));btn.classList.add("active");if(id==="resultado")renderResultado(); if(id==="debitos")renderDebitos();}
+function init(){
+ const now=new Date(), y=now.getFullYear(), m=now.getMonth()+1;
+ document.getElementById("ano").innerHTML=Array.from({length:7},(_,i)=>`<option>${y-2+i}</option>`).join("");
+ document.getElementById("ano").value=y;
+
+ const nomes=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+ document.getElementById("mes").innerHTML=Array.from({length:12},(_,i)=>`<option value="${i+1}">${String(i+1).padStart(2,"0")} - ${nomes[i]}</option>`).join("");
+ document.getElementById("mes").value=m;
+
+ document.getElementById("posto").innerHTML=POSTOS.map(p=>`<option value="${p[0]}">${p[0]}</option>`).join("");
+ document.getElementById("quinquenios").innerHTML=Array.from({length:6},(_,i)=>
+   `<div><label>${i+1}º Quinquênio</label>
+    <select id="q${i+1}" onchange="calcularHolerite()">
+      <option value="nao">Não</option><option value="sim">Sim</option>
+    </select></div>`).join("");
+
+ carregarBaseUI();
+ carregarPosto();
+ renderExtras();
+ renderDebitos();
+ carregarDescontosPadrao();
+ alterarTipoDebito();
+ atualizarLancamentos();
+ renderResultado();
+}
+
+function carregarBaseUI(){
+ ufesp.value=base.ufesp;
+ insalubridade.value=base.insalubridade;
+ percQuinq.value=base.percQuinq;
+ percSexta.value=base.percSexta;
+ alim50.value=base.alim50;
+ alim100.value=base.alim100;
+ alim150.value=base.alim150;
+
+ tabelaPostos.innerHTML=POSTOS.map(p=>{
+   let x=base.postos[p[0]]||{salario:p[1],retp:p[1]};
+   return `<tr>
+     <td>${p[0]}</td>
+     <td><input id="sb_${p[0]}" type="number" step="0.01" value="${x.salario}"></td>
+     <td><input id="rt_${p[0]}" type="number" step="0.01" value="${x.retp}"></td>
+   </tr>`;
+ }).join("");
+}
+
+function salvarBase(){
+ base.ufesp=+ufesp.value;
+ base.insalubridade=+insalubridade.value;
+ base.percQuinq=+percQuinq.value;
+ base.percSexta=+percSexta.value;
+ base.alim50=+alim50.value;
+ base.alim100=+alim100.value;
+ base.alim150=+alim150.value;
+
+ POSTOS.forEach(p=>{
+   let s=document.getElementById("sb_"+p[0]);
+   let r=document.getElementById("rt_"+p[0]);
+   base.postos[p[0]]={salario:+s.value,retp:+r.value};
+ });
+
+ localStorage.setItem("mike_base",JSON.stringify(base));
+ atualizarLancamentos();
+ carregarPosto();
+ alert("Base salva.");
+}
+
+function carregarPosto(){
+ let p=base.postos[posto.value]||{salario:0,retp:0};
+ salarioBase.value=brl(p.salario);
+ retp.value=brl(p.retp);
+
+ insalubridadeH.value=holerite?.posto===posto.value
+   ? holerite.insalubridade
+   : base.insalubridade;
+
+ if(holerite?.posto===posto.value){
+   for(let i=1;i<=6;i++)
+     document.getElementById("q"+i).value=holerite.q[i]?"sim":"nao";
+   sexta.value=holerite.sexta?"sim":"nao";
+ }
+
+ calcularHolerite();
+}
+
+function calcularHolerite(){
+ let p=base.postos[posto.value]||{salario:0,retp:0}, q=[];
+ for(let i=1;i<=6;i++) q[i]=document.getElementById("q"+i)?.value==="sim";
+
+ let sextaV=sexta.value==="sim"
+   ? (p.salario+p.retp)*(base.percSexta/100)
+   : 0;
+
+ let qV=p.salario*(base.percQuinq/100);
+ let totalQ=q.slice(1).filter(Boolean).length*qV;
+ let total=p.salario+p.retp+totalQ+sextaV+(+insalubridadeH.value||0);
+
+ return {
+   posto:posto.value,
+   salario:p.salario,
+   retp:p.retp,
+   q,
+   qV,
+   sexta:sexta.value==="sim",
+   sextaV,
+   insalubridade:+insalubridadeH.value||0,
+   total
+ };
+}
+
+function salvarHolerite(){
+ holerite=calcularHolerite();
+ localStorage.setItem("mike_holerite",JSON.stringify(holerite));
+ renderResultado();
+ alert("Holerite salvo.");
+}
+
+function atualizarLancamentos(){
+ ufespLanc.value=brl(base.ufesp);
+
+ let y=+ano.value;
+ let m=+mes.value;
+ let key=`${y}-${String(m).padStart(2,"0")}`;
+
+ if(!lancamentos[key]){
+   lancamentos[key]={
+     padrao:{quantidade:0,inicio:"",fim:""},
+     diferentes:[]
+   };
+ }
+
+ if(!lancamentos[key].padrao)
+   lancamentos[key].padrao={quantidade:0,inicio:"",fim:""};
+
+ if(!lancamentos[key].diferentes)
+   lancamentos[key].diferentes=[];
+
+ let p=lancamentos[key].padrao;
+
+ qtdServicosPadrao.value=p.quantidade||0;
+ horaInicioPadrao.value=p.inicio||"";
+ horaFinalPadrao.value=p.fim||"";
+
+ let dias=new Date(y,m,0).getDate();
+ dataServicoDiferente.innerHTML=Array.from({length:dias},(_,i)=>{
+   let d=i+1;
+   return `<option value="${d}">${String(d).padStart(2,"0")}/${String(m).padStart(2,"0")}/${y}</option>`;
+ }).join("");
+
+ calcularPadrao();
+ renderDiferentes();
+ atualizarResumoLancamentos();
+}
+
+function horasEntre(a,b){
+ if(!a||!b) return 0;
+
+ let [ah,am]=a.split(":").map(Number);
+ let [bh,bm]=b.split(":").map(Number);
+
+ let x=ah*60+am;
+ let y=bh*60+bm;
+
+ if(y<=x) y+=1440;
+
+ return (y-x)/60;
+}
+
+function formatarHoras(h){
+ if(!h) return "0h 00min";
+ let horas=Math.floor(h);
+ let minutos=Math.round((h-horas)*60);
+ if(minutos===60){horas++;minutos=0;}
+ return `${horas}h ${String(minutos).padStart(2,"0")}min`;
+}
+
+function obterFaixa(h){
+ if(h>=18) return "18h a 24h";
+ if(h>=12) return "12h a <18h";
+ if(h>=8) return "8h a <12h";
+ return "Sem benefício";
+}
+
+function calcularAlim(h){
+ let percentual=0;
+
+ if(h>=18) percentual=base.alim150;
+ else if(h>=12) percentual=base.alim100;
+ else if(h>=8) percentual=base.alim50;
+
+ return percentual
+   ? base.ufesp*2*(percentual/100)
+   : 0;
+}
+
+function calcularPadrao(){
+ let inicio=horaInicioPadrao.value;
+ let fim=horaFinalPadrao.value;
+ let h=horasEntre(inicio,fim);
+
+ totalHorasPadrao.value=h?formatarHoras(h):"";
+ let valor=calcularAlim(h);
+
+ valorServicoPadrao.value=valor?brl(valor):"R$ 0,00";
+
+ let qtd=+qtdServicosPadrao.value||0;
+ totalAlimentacaoPadrao.value=brl(valor*qtd);
+
+ faixaPadrao.textContent=h
+   ? `${obterFaixa(h)} — ${formatarHoras(h)} por serviço — ${brl(valor)} por serviço.`
+   : "Informe início e final para identificar a faixa de alimentação.";
+}
+
+function salvarHorarioPadrao(){
+ let y=+ano.value,m=+mes.value,key=`${y}-${String(m).padStart(2,"0")}`;
+
+ if(!lancamentos[key])
+   lancamentos[key]={padrao:{},diferentes:[]};
+
+ lancamentos[key].padrao={
+   quantidade:+qtdServicosPadrao.value||0,
+   inicio:horaInicioPadrao.value,
+   fim:horaFinalPadrao.value
+ };
+
+ localStorage.setItem("mike_lancamentos",JSON.stringify(lancamentos));
+ atualizarResumoLancamentos();
+ renderResultado();
+
+ alert("Horário padrão salvo.");
+}
+
+function calcularDiferente(){
+ let h=horasEntre(horaInicioDiferente.value,horaFinalDiferente.value);
+
+ totalHorasDiferente.value=h?formatarHoras(h):"";
+ faixaDiferente.value=h?obterFaixa(h):"";
+ valorDiferente.value=brl(calcularAlim(h));
+}
+
+function adicionarServicoDiferente(){
+ let data=+dataServicoDiferente.value;
+ let inicio=horaInicioDiferente.value;
+ let fim=horaFinalDiferente.value;
+
+ if(!inicio||!fim){
+   alert("Informe a hora inicial e a hora final.");
+   return;
+ }
+
+ let y=+ano.value,m=+mes.value,key=`${y}-${String(m).padStart(2,"0")}`;
+ let h=horasEntre(inicio,fim);
+
+ if(!lancamentos[key])
+   lancamentos[key]={padrao:{quantidade:0,inicio:"",fim:""},diferentes:[]};
+
+ if(!lancamentos[key].diferentes)
+   lancamentos[key].diferentes=[];
+
+ /* Se já existir lançamento diferente para o mesmo dia, substitui. */
+ lancamentos[key].diferentes=lancamentos[key].diferentes.filter(x=>x.data!==data);
+
+ lancamentos[key].diferentes.push({
+   data,
+   inicio,
+   fim,
+   horas:h,
+   faixa:obterFaixa(h),
+   valor:calcularAlim(h)
+ });
+
+ lancamentos[key].diferentes.sort((a,b)=>a.data-b.data);
+
+ localStorage.setItem("mike_lancamentos",JSON.stringify(lancamentos));
+
+ renderDiferentes();
+ atualizarResumoLancamentos();
+ renderResultado();
+ limparDiferente(false);
+}
+
+function limparDiferente(resetData=true){
+ if(resetData) dataServicoDiferente.selectedIndex=0;
+ horaInicioDiferente.value="";
+ horaFinalDiferente.value="";
+ totalHorasDiferente.value="";
+ faixaDiferente.value="";
+ valorDiferente.value="";
+}
+
+function removerDiferente(data){
+ let y=+ano.value,m=+mes.value,key=`${y}-${String(m).padStart(2,"0")}`;
+
+ if(!lancamentos[key]) return;
+
+ lancamentos[key].diferentes=(lancamentos[key].diferentes||[])
+   .filter(x=>x.data!==data);
+
+ localStorage.setItem("mike_lancamentos",JSON.stringify(lancamentos));
+
+ renderDiferentes();
+ atualizarResumoLancamentos();
+ renderResultado();
+}
+
+function renderDiferentes(){
+ let y=+ano.value,m=+mes.value,key=`${y}-${String(m).padStart(2,"0")}`;
+ let lista=lancamentos[key]?.diferentes||[];
+
+ tabelaDiferentes.innerHTML=lista.length
+   ? lista.map(x=>`
+      <tr>
+        <td>${String(x.data).padStart(2,"0")}/${String(m).padStart(2,"0")}/${y}</td>
+        <td>${x.inicio}</td>
+        <td>${x.fim}</td>
+        <td>${formatarHoras(x.horas)}</td>
+        <td>${x.faixa}</td>
+        <td class="money">${brl(x.valor)}</td>
+        <td><button class="secondary" onclick="removerDiferente(${x.data})">Excluir</button></td>
+      </tr>`).join("")
+   : `<tr><td colspan="7" class="empty">Nenhum serviço com horário diferente cadastrado.</td></tr>`;
+}
+
+function atualizarResumoLancamentos(){
+ let y=+ano.value,m=+mes.value,key=`${y}-${String(m).padStart(2,"0")}`;
+ let dados=lancamentos[key]||{padrao:{quantidade:0},diferentes:[]};
+
+ let qtdPadrao=+dados.padrao?.quantidade||0;
+ let diferentes=dados.diferentes||[];
+ let qtdDiferentes=diferentes.length;
+
+ let hPadrao=horasEntre(dados.padrao?.inicio,dados.padrao?.fim);
+ let valorPadrao=calcularAlim(hPadrao);
+ let totalPadrao=valorPadrao*qtdPadrao;
+
+ let totalDiferentes=diferentes.reduce((s,x)=>s+(x.valor||0),0);
+
+ resumoQtdPadrao.textContent=qtdPadrao;
+ resumoQtdDiferentes.textContent=qtdDiferentes;
+ resumoQtdTotal.textContent=qtdPadrao+qtdDiferentes;
+ resumoAlimentacaoLanc.textContent=brl(totalPadrao+totalDiferentes);
+
+ calcularPadrao();
+}
+
+function obterResumoAlimentacaoMes(){
+ let y=+ano.value,m=+mes.value,key=`${y}-${String(m).padStart(2,"0")}`;
+ let dados=lancamentos[key]||{padrao:{},diferentes:[]};
+
+ let h=horasEntre(dados.padrao?.inicio,dados.padrao?.fim);
+ let qtd=+dados.padrao?.quantidade||0;
+ let valorPadrao=calcularAlim(h)*qtd;
+
+ let diferentes=dados.diferentes||[];
+ let valorDiferentes=diferentes.reduce((s,x)=>s+(x.valor||0),0);
+
+ let faixa8=0,faixa12=0,faixa18=0;
+
+ if(qtd&&h>=8&&h<12) faixa8=qtd;
+ else if(qtd&&h>=12&&h<18) faixa12=qtd;
+ else if(qtd&&h>=18) faixa18=qtd;
+
+ diferentes.forEach(x=>{
+   if(x.horas>=18) faixa18++;
+   else if(x.horas>=12) faixa12++;
+   else if(x.horas>=8) faixa8++;
+ });
+
+ return {
+   qtdPadrao:qtd,
+   qtdDiferentes:diferentes.length,
+   total:qtd+diferentes.length,
+   faixa8,
+   faixa12,
+   faixa18,
+   valor:valorPadrao+valorDiferentes
+ };
+}
+
+function salvarLancamentos(){
+ let y=+ano.value,m=+mes.value,key=`${y}-${String(m).padStart(2,"0")}`;
+
+ if(!lancamentos[key])
+   lancamentos[key]={};
+
+ lancamentos[key].padrao={
+   quantidade:+qtdServicosPadrao.value||0,
+   inicio:horaInicioPadrao.value,
+   fim:horaFinalPadrao.value
+ };
+
+ if(!lancamentos[key].diferentes)
+   lancamentos[key].diferentes=[];
+
+ localStorage.setItem("mike_lancamentos",JSON.stringify(lancamentos));
+
+ atualizarResumoLancamentos();
+ renderDiferentes();
+ renderResultado();
+
+ alert("Lançamentos salvos.");
+}
+
+function alterarTipoPagamentoExtra(){extraDataBox.style.display=extraPagamento.value==="data"?"block":"none";extraUtilBox.style.display=extraPagamento.value==="util"?"block":"none";if(extraPagamento.value==="util")calcularDataUtilExtra();}
+function calcularDiaUtil(y,m,n){let d=new Date(y,m-1,1),c=0;while(d.getMonth()===m-1){if(d.getDay()!==0&&d.getDay()!==6&&++c===n)return d;d.setDate(d.getDate()+1)}return null}
+function calcularDataUtilExtra(){if(!extraMesPagamento.value){extraDataCalculada.value="";return}let [y,m]=extraMesPagamento.value.split("-").map(Number),d=calcularDiaUtil(y,m,+extraDiaUtil.value);extraDataCalculada.value=d?`${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`:""}
+function obterDataPagamentoExtra(){if(extraPagamento.value==="data")return extraDataPagamento.value||"";if(!extraMesPagamento.value)return"";let [y,m]=extraMesPagamento.value.split("-").map(Number),d=calcularDiaUtil(y,m,+extraDiaUtil.value);return d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`:""}
+function adicionarExtra(){let valor=+extraValor.value;if(!valor||valor<=0)return alert("Informe um valor unitário válido.");let data=obterDataPagamentoExtra();if(!data)return alert("Informe a data de pagamento.");ganhosExtras.push({id:Date.now(),tipo:extraTipo.value,valor,pagamento:extraPagamento.value==="data"?"Data Específica":"Dia Útil",dataPagamento:data});salvarExtras();limparExtra();}
+function limparExtra(){extraValor.value="";extraDataPagamento.value="";extraMesPagamento.value="";extraDiaUtil.value="1";extraDataCalculada.value="";extraPagamento.value="data";alterarTipoPagamentoExtra()}
+function removerExtra(id){ganhosExtras=ganhosExtras.filter(x=>x.id!==id);salvarExtras()}
+function salvarExtras(){localStorage.setItem("mike_ganhos_extras",JSON.stringify(ganhosExtras));renderExtras();renderResultado()}
+function renderExtras(){let t={Dejem:0,Delegada:0,Bico:0};ganhosExtras.forEach(x=>t[x.tipo]=(t[x.tipo]||0)+(+x.valor||0));extraTotalDejem.textContent=brl(t.Dejem);extraTotalDelegada.textContent=brl(t.Delegada);extraTotalBico.textContent=brl(t.Bico);extraTotalGeral.textContent=brl(t.Dejem+t.Delegada+t.Bico);tabelaExtras.innerHTML=ganhosExtras.length?ganhosExtras.slice().sort((a,b)=>a.dataPagamento.localeCompare(b.dataPagamento)).map(x=>`<tr><td>${x.tipo}</td><td class="money">${brl(x.valor)}</td><td>${x.pagamento}</td><td>${x.dataPagamento.split("-").reverse().join("/")}</td><td><button class="secondary" onclick="removerExtra(${x.id})">Excluir</button></td></tr>`).join(""):"<tr><td colspan=5 class=empty>Nenhum serviço extra lançado.</td></tr>"}
+function competenciaAtual(){let y=+ano.value,m=+mes.value;return `${y}-${String(m).padStart(2,"0")}`}
+function totalGanhosExtrasMes(){let comp=competenciaAtual();return ganhosExtras.reduce((s,x)=>s+(String(x.dataPagamento||"").slice(0,7)===comp?(+x.valor||0):0),0)}
+function totalGanhosExtras(){return ganhosExtras.reduce((s,x)=>s+(+x.valor||0),0)}
+
+function ehTipoParcelado(tipo){return ["Parcelamento","Cartão de Crédito","Financiamento"].includes(tipo)}
+function ehTipoRecorrente(tipo){return ["Em Folha","Mensalidade","Associação","Pensão"].includes(tipo)}
+function carregarDescontosPadrao(){
+ padIRRF.checked=!!descontosPadrao.irrf; padCBPM.checked=!!descontosPadrao.cbpm; padVest.checked=!!descontosPadrao.vest; padCopa.checked=!!descontosPadrao.copa; padPrev.checked=!!descontosPadrao.prev;
+ cbpmPerc.value=descontosPadrao.cbpmPerc||""; vestValor.value=descontosPadrao.vestValor||""; vestRec.value=descontosPadrao.vestRec?"sim":"nao"; vestSemFim.checked=!!descontosPadrao.vestSemFim; vestAte.value=descontosPadrao.vestAte||""; copaValor.value=descontosPadrao.copaValor||""; copaRec.value=descontosPadrao.copaRec?"sim":"nao"; copaSemFim.checked=!!descontosPadrao.copaSemFim; copaAte.value=descontosPadrao.copaAte||""; prevPerc.value=descontosPadrao.prevPerc||""; renderDescontosPadrao();
+}
+function renderDescontosPadrao(){
+ const comp=competenciaAtual(), calc=totalDescontosPadraoMes(comp);
+ vestRecConfig.style.display=(padVest.checked&&vestRec.value==="sim")?"block":"none"; copaRecConfig.style.display=(padCopa.checked&&copaRec.value==="sim")?"block":"none";
+ vestAte.disabled=!!vestSemFim.checked; copaAte.disabled=!!copaSemFim.checked;
+ if(vestSemFim.checked)vestAte.value=""; if(copaSemFim.checked)copaAte.value="";
+ const base=calc.baseIRRF||0, baseDescontos=calc.baseDescontos||0, det=Object.fromEntries(calc.detalhes||[]);
+ baseCalculoDescontos.textContent=brl(baseDescontos);
+ irrfBaseInfo.value=padIRRF.checked?brl(base):"Desativado"; irrfValorInfo.value=padIRRF.checked?brl(det.IRRF||0):"Desativado";
+ cbpmValorInfo.value=padCBPM.checked?brl(det.CBPM||0):"Desativado"; prevValorInfo.value=padPrev.checked?brl(det["Previdência Própria PM"]||0):"Desativado";
+ let parts=[]; if(padIRRF.checked)parts.push("IRRF"); if(padCBPM.checked)parts.push(`CBPM ${(+cbpmPerc.value||0).toFixed(2)}%`); if(padVest.checked)parts.push(`Vestuário ${brl(+vestValor.value||0)}`); if(padCopa.checked)parts.push(`Plano Copa ${brl(+copaValor.value||0)}`); if(padPrev.checked)parts.push(`Previdência ${(+prevPerc.value||0).toFixed(2)}%`); resumoDescontosPadrao.textContent=parts.length?`Configurado para ${formatarCompetencia(comp)}: ${parts.join(" • ")}`:"Nenhum desconto padrão selecionado.";
+}
+function salvarDescontosPadrao(){
+ descontosPadrao={irrf:padIRRF.checked,cbpm:padCBPM.checked,cbpmPerc:+cbpmPerc.value||0,vest:padVest.checked,vestValor:+vestValor.value||0,vestRec:vestRec.value==="sim",vestSemFim:!!vestSemFim.checked,vestAte:vestAte.value||"",copa:padCopa.checked,copaValor:+copaValor.value||0,copaRec:copaRec.value==="sim",copaSemFim:!!copaSemFim.checked,copaAte:copaAte.value||"",prev:padPrev.checked,prevPerc:+prevPerc.value||0,competencia:competenciaAtual(),atualizadoEm:new Date().toISOString()};
+ localStorage.setItem("mike_descontos_padrao",JSON.stringify(descontosPadrao)); renderDescontosPadrao(); renderResultado(); alert("Descontos padrão salvos.");
+}
+function valorQuinqueniosHolerite(){return holerite?holerite.qV*holerite.q.slice(1).filter(Boolean).length:0}
+function baseCalculoDescontos(){if(!holerite)return 0; return holerite.salario+holerite.retp+valorQuinqueniosHolerite()+holerite.sextaV+holerite.insalubridade}
+function baseIRRF(){return baseCalculoDescontos()+ (holerite?obterResumoAlimentacaoMes().valor:0)}
+function calcularIRRF2026(baseRend){
+ let deducaoSimplificada=607.20, bc=Math.max(0,baseRend-deducaoSimplificada), imposto=0;
+ if(bc<=2428.80) imposto=0; else if(bc<=2826.65) imposto=bc*.075-182.16; else if(bc<=3751.05) imposto=bc*.15-394.16; else if(bc<=4664.68) imposto=bc*.225-675.49; else imposto=bc*.275-908.73;
+ imposto=Math.max(0,imposto);
+ let reducao=0; if(baseRend<=5000) reducao=Math.min(imposto,312.89); else if(baseRend<=7350) reducao=Math.min(imposto,978.62-(0.133145*baseRend));
+ return Math.max(0,imposto-Math.max(0,reducao));
+}
+function aplicaRecorrenciaPadrao(valor,rec,ate,comp){return !rec || !ate || comp<=ate?valor:0}
+function totalDescontosPadraoMes(comp=competenciaAtual()){
+ let total=0, detalhes=[]; if(descontosPadrao.irrf){let v=calcularIRRF2026(baseIRRF()); total+=v; detalhes.push(["IRRF",v]);}
+ let basePrev=holerite?(holerite.salario+holerite.retp+valorQuinqueniosHolerite()+holerite.sextaV):0;
+ if(descontosPadrao.cbpm){let v=basePrev*(+descontosPadrao.cbpmPerc||0)/100; total+=v; detalhes.push(["CBPM",v]);}
+ if(descontosPadrao.vest){let v=aplicaRecorrenciaPadrao(+descontosPadrao.vestValor||0,descontosPadrao.vestRec,descontosPadrao.vestSemFim?"":descontosPadrao.vestAte,comp); total+=v; detalhes.push(["Fepom Vestuário",v]);}
+ if(descontosPadrao.copa){let v=aplicaRecorrenciaPadrao(+descontosPadrao.copaValor||0,descontosPadrao.copaRec,descontosPadrao.copaSemFim?"":descontosPadrao.copaAte,comp); total+=v; detalhes.push(["Fepom Plano Copa",v]);}
+ if(descontosPadrao.prev){let v=basePrev*(+descontosPadrao.prevPerc||0)/100; total+=v; detalhes.push(["Previdência Própria PM",v]);}
+ return {total,detalhes,baseIRRF:baseIRRF(),baseDescontos:baseCalculoDescontos(),basePrev};
+}
+
+function alterarTipoDebito(){
+  const parcelado=ehTipoParcelado(debitoTipo.value);
+  debitoParcelamentoBox.style.display=parcelado?"block":"none";
+  debitoRecorrenteBox.style.display=parcelado?"none":"block";
+  if(parcelado){debitoRecorrente.value="nao";alterarRecorrenciaDebito();}
+}
+function alterarRecorrenciaDebito(){debitoAteBox.style.display=(debitoRecorrente.value==="sim" && ehTipoRecorrente(debitoTipo.value))?"block":"none"}
+function calcularParcelaDebito(){let valor=+debitoValor.value||0,n=+debitoParcelas.value||0;debitoValorTotal.value=(valor>0&&n>0)?(valor*n).toFixed(2):""; if(valor*n>0) debitoValorTotal.value=valor*n; debitoValorParcela.value=valor>0?brl(valor):"R$ 0,00"}
+function formatarCompetencia(comp){if(!comp)return"—";let [y,m]=comp.split("-");return `${m}/${y}`}
+function adicionarMesesCompetencia(comp,n){let [y,m]=comp.split("-").map(Number);let d=new Date(y,m-1+n,1);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`}
+function mesesAte(compInicial,compFinal){let [y1,m1]=compInicial.split("-").map(Number),[y2,m2]=compFinal.split("-").map(Number);return (y2-y1)*12+(m2-m1)}
+function mesesVigentesDebito(x,comp){
+  if(x.regra==="recorrente"){
+    if(comp<x.competenciaInicial)return false;
+    return !x.ate || comp<=x.ate;
+  }
+  if(x.regra==="parcelado"){
+    let idx=mesesAte(x.competenciaInicial,comp);
+    return idx>=0 && idx<x.parcelas;
+  }
+  return comp===x.competenciaInicial;
+}
+function valorDebitoNaCompetencia(x,comp){return mesesVigentesDebito(x,comp)?(+x.valorParcela||+x.valor||0):0}
+function totalDebitosMes(comp=competenciaAtual()){return debitos.reduce((s,x)=>s+valorDebitoNaCompetencia(x,comp),0)}
+function adicionarDebito(){
+  let tipo=debitoTipo.value,credor=debitoCredor.value.trim(),valor=+debitoValor.value||0,comp=competenciaAtual();
+  if(!credor)return alert("Informe a instituição ou credor.");
+  if(ehTipoParcelado(tipo)){
+    let parcelas=+debitoParcelas.value||0,valorParcela=+debitoValor.value||0,totalDivida=+debitoValorTotal.value||0;
+    if(!parcelas||parcelas<1)return alert("Informe a quantidade de parcelas restantes.");
+    if(!valorParcela||valorParcela<=0)return alert("Informe o valor da parcela.");
+    totalDivida=valorParcela*parcelas;
+    debitos.push({id:Date.now(),tipo,credor,valor:valorParcela,valorTotal:totalDivida,parcelas,valorParcela,regra:"parcelado",competenciaInicial:comp});
+  }else{
+    if(!valor||valor<=0)return alert("Informe um valor válido.");
+    let recorrente=ehTipoRecorrente(tipo)&&debitoRecorrente.value==="sim",ate=recorrente?(debitoAte.value||""):"";
+    if(recorrente && (!ate || ate<comp))return alert("Informe um mês final válido para o débito recorrente.");
+    debitos.push({id:Date.now(),tipo,credor,valor,valorParcela:valor,regra:recorrente?"recorrente":"unico",competenciaInicial:comp,ate});
+  }
+  salvarDebitos();limparDebito();
+}
+function limparDebito(){debitoTipo.value="Associação";debitoCredor.value="";debitoValor.value="";debitoRecorrente.value="nao";debitoAte.value="";debitoParcelas.value="";debitoValorTotal.value="";debitoValorParcela.value="";alterarTipoDebito();}
+function removerDebito(id){debitos=debitos.filter(x=>x.id!==id);salvarDebitos()}
+function salvarDebitos(){localStorage.setItem("mike_debitos",JSON.stringify(debitos));renderDebitos();renderResultado()}
+function renderDebitos(){
+  let comp=competenciaAtual(),totRec=0,totPar=0,totalMes=totalDebitosMes(comp),totalGeral=0;
+  debitos.forEach(x=>{totalGeral+=+x.valor||0;if(x.regra==="recorrente")totRec+=+x.valor||0;else if(x.regra==="parcelado")totPar+=+x.valorParcela||0});
+  debitoTotalRecorrente.textContent=brl(totRec);debitoTotalParcelas.textContent=brl(totPar);debitoTotalMes.textContent=brl(totalMes);debitoTotalGeral.textContent=brl(totalGeral);competenciaDebitos.textContent=formatarCompetencia(comp);
+  tabelaDebitos.innerHTML=debitos.length?debitos.slice().sort((a,b)=>a.competenciaInicial.localeCompare(b.competenciaInicial)).map(x=>{
+    let regra=x.regra==="parcelado"?`${x.parcelas}x de ${brl(x.valorParcela)}`:x.regra==="recorrente"?`Recorrente${x.ate?` até ${formatarCompetencia(x.ate)}`:""}`:"Somente ${formatarCompetencia(x.competenciaInicial)}";
+    let vig=x.regra==="parcelado"?`${formatarCompetencia(x.competenciaInicial)} → ${formatarCompetencia(adicionarMesesCompetencia(x.competenciaInicial,x.parcelas-1))}`:x.regra==="recorrente"?`${formatarCompetencia(x.competenciaInicial)} → ${x.ate?formatarCompetencia(x.ate):"∞"}`:formatarCompetencia(x.competenciaInicial);
+    return `<tr><td>${x.tipo}</td><td>${x.credor}</td><td class="money">${brl(x.regra==="parcelado"?x.valorParcela:x.valor)}</td><td>${regra}</td><td>${vig}</td><td><button class="secondary" onclick="removerDebito(${x.id})">Excluir</button></td></tr>`;
+  }).join(""):"<tr><td colspan=6 class=empty>Nenhum desconto ou débito cadastrado.</td></tr>";
+}
+
+function renderResultado(){
+ if(!holerite){
+   resultadoHolerite.innerHTML='<div class="empty">Cadastre um holerite para visualizar o cálculo.</div>';
+ } else {
+   let qrows="";
+   for(let i=1;i<=6;i++){
+     if(holerite.q[i])
+       qrows+=`<tr><td>${i}º Quinquênio</td><td class="money">${brl(holerite.qV)}</td></tr>`;
+   }
+
+   let resumo=obterResumoAlimentacaoMes();
+   let totalFinal=holerite.total+resumo.valor;
+
+   resultadoHolerite.innerHTML=`
+   <table>
+     <tbody>
+       <tr><th colspan="2">${holerite.posto}</th></tr>
+       <tr><td>Salário Base</td><td class="money">${brl(holerite.salario)}</td></tr>
+       <tr><td>RETP</td><td class="money">${brl(holerite.retp)}</td></tr>
+       ${qrows}
+       <tr><td>Sexta-Parte</td><td class="money">${brl(holerite.sextaV)}</td></tr>
+       <tr><td>Insalubridade</td><td class="money">${brl(holerite.insalubridade)}</td></tr>
+       <tr><th>Subtotal Holerite</th><th class="money">${brl(holerite.total)}</th></tr>
+       <tr><td>Ajuda Custo Alimentação</td><td class="money">${brl(resumo.valor)}</td></tr>
+       <tr><td>Ganhos Extra na competência</td><td class="money">${brl(totalGanhosExtrasMes())}</td></tr><tr><td>Descontos padrão</td><td class="money">- ${brl(totalDescontosPadraoMes().total)}</td></tr><tr><td>Descontos / Débitos cadastrados</td><td class="money">- ${brl(totalDebitosMes())}</td></tr><tr><th>TOTAL BRUTO CALCULADO</th><th class="money">${brl(totalFinal+totalGanhosExtrasMes())}</th></tr><tr><th>TOTAL LÍQUIDO ESTIMADO</th><th class="money total">${brl(totalFinal+totalGanhosExtrasMes()-totalDescontosPadraoMes().total-totalDebitosMes())}</th></tr>
+     </tbody>
+   </table>`;
+ }
+
+ let resumo=obterResumoAlimentacaoMes();
+
+ resumoAlimentacao.innerHTML=`
+   <div class="grid4">
+     <div><span class="small">8h a &lt;12h</span><div class="kpi">${resumo.faixa8}</div></div>
+     <div><span class="small">12h a &lt;18h</span><div class="kpi">${resumo.faixa12}</div></div>
+     <div><span class="small">18h a 24h</span><div class="kpi">${resumo.faixa18}</div></div>
+     <div><span class="small">Total serviços</span><div class="kpi">${resumo.total}</div></div>
+   </div>
+   <hr>
+   <strong>Total de alimentação:</strong> ${brl(resumo.valor)}`;
+
+ dashDebitos.textContent=brl(totalDebitosMes()+totalDescontosPadraoMes().total);
+ if(holerite){
+   dashPosto.textContent=holerite.posto;
+   dashSalario.textContent=brl(holerite.salario);
+   dashRetp.textContent=brl(holerite.retp);
+   dashAlimentacao.textContent=brl(resumo.valor);
+ }
+}
+
+init();
+</script>
+</body>
+</html>
